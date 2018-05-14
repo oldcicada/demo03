@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="Generator" content="Hbuilder"><!--指定文件是用什么生成的-->
+  <style>
+        body{margin:0;padding:0;overflow: hidden;}
+        .city{width:100%;position:fixed;bottom: 0px;z-index: 100;}
+        .city img{width: 100%;}
+    </style>
+ </head>
+ <body>
+    <canvas id='cas' style="background-color:rgba(0,5,24,1)">canvas</canvas>
+    <div class="city"><img src="img/city.png" alt="" /></div>
+    <img src="img/moon.jpg" alt="" id="moon" style="visibility: hidden;"/>
+    <div style="display:none">
+        <div class="shape">HAPPY</div>
+        <div class="shape">HAPPY</div>
+        <div class="shape">HAPPY</div>
+        <div class="shape">HAPPY</div>
+        <div class="shape">HAPPY</div>
+    </div>
+  <!-- 声音文件
+  	<audio src="boom.mp3" preload="auto"></audio>
+    <audio src="boom.mp3" preload="auto"></audio>
+    <audio src="boom.mp3" preload="auto"></audio>
+    <audio src="boom.mp3" preload="auto"></audio>
+    <audio src="boom.mp3" preload="auto"></audio>
+    <audio src="boom.mp3" preload="auto"></audio>
+    <audio src="shotfire.mp3" preload="auto"></audio>
+    <audio src="shotfire.mp3" preload="auto"></audio>
+    <audio src="shotfire.mp3" preload="auto"></audio>-->
+ </body>
+ <script>
+ 	//requestAnimationFrame动画控制，浏览器兼容补丁  
+	window.requestAnimationFrame = (function(){  
+	  return  window.requestAnimationFrame       ||  
+	          window.webkitRequestAnimationFrame ||  
+	          window.mozRequestAnimationFrame    ||  
+	          function( callback ){  
+	            window.setTimeout(callback, 1000 / 60);  
+	          };  
+	})();  
+	
+    var cas=document.getElementById('cas'),//canvas H5画图标签，本身没有绘图能力，需要javascript脚本来执行绘图,获取canvas画布对象
+        ctx=cas.getContext('2d'),//使用context创建对象，为H5内建对象，拥有多种绘制路径、矩形、圆形、字符以及添加图像的方法
+        ocas=document.createElement('canvas'),//新建画布添加到dom树
+        octx=ocas.getContext('2d'),
+        /*
+         *document.compatMode是用来判断当前浏览器采用的渲染方式。有两个模式：
+   		 BackCompat：标准兼容模式关闭，当document.compatMode等于BackCompat时，浏览器客户区宽度为document.body.clientWidth;
+    	 CSS1Compat：标准兼容模式开启,当document.compatMode等于CSS1Compat时浏览器客户区宽度为document.documentElement.clientWidth;
+         * */
+        cw=document.compatMode=='BackCompat'?document.body.clientWidth:document.documentElement.clientWidth,//浏览器宽度
+        ch=document.compatMode=='BackCompat'?document.body.clientHeight:document.documentElement.clientHeight,//浏览器高度
+        last,
+        now,
+        stars=[],//星星数组 
+        booms=[],//烟花爆炸屑数字 
+        moon=document.getElementById('moon'),
+        shape=document.querySelectorAll('.shape'),//获取所有shape对象
+        audio=document.getElementsByTagName('audio');//加载音频
+   	 	cas.width=ocas.width=cw;//设置canvas画布宽度和ocas画布宽度为浏览器宽度
+	    cas.height=ocas.height=ch;//设置canvas画布宽度和ocas画布宽度为浏览器高度
+	    window.onload=function(){//初始化
+	       	createStars();//在canvas画布上绘制星星
+	        last=+new Date();//初始化当前时间
+	        animate();
+	    }
+
+    function animate(){
+        ctx.save();
+         //globalCompositeOperation 属性设置或返回如何将一个源（新的）图像绘制到目标（已有）的图像上。
+        ctx.globalCompositeOperation='destination-out';
+        ctx.globalAlpha=0.1;//globalAlpha可以指定图形的透明度。
+        ctx.fillRect(0,0,cw,ch);
+        ctx.restore();
+
+        stars.forEach(function(){//执行数组的paint()方法绘制星星
+            this.paint();
+        });
+        
+        //创建月亮
+        createMoon();
+
+        now=+new Date();//获得当前时间
+        if(now-last>1000){
+            var rand=getRand(0,100)>50?true:false,
+            num=Math.floor(getRand(0,shape.length)),
+                x=getRand(cw/3,cw*2/3),y=ch,r=2,color='#fff',tx=getRand(cw/5,cw*4/5),ty=getRand(50,ch-300);
+            if(rand){
+                booms.push(new Firework(x,y,r,color,tx,ty));
+            }else{
+                booms.push(new Firework(x,y,r,color,tx,ty,shape[num]));
+            }
+            
+            //播放音频文件
+            for(var i=0;i<audio.length;i++){
+                if(audio[i].src.indexOf('shotfire')>=0 && (audio[i].paused || audio[i].ended)){
+                    audio[i].play();
+                    break;
+                }
+            }
+            
+            last=now;//重置时间
+        }
+
+        booms.forEach(function(){
+            var that=this;
+            if(!this.dead){
+                this.update();
+                this.smoke();
+            }else{
+                this.booms.forEach(function(index){
+                    if(!this.dead){
+                        this.update();
+                    }else{
+                        if(index==that.booms.length){
+                            booms.splice(booms.indexOf(that),1);
+                        }
+                    }
+                });
+            }
+        });
+        //requestAnimationFrame动画控制,（定时刷新）
+        requestAnimationFrame(animate);
+    }
+
+    function Particle(x,y,r,color,tx,ty){
+        this.x=x;
+        this.y=y;
+        this.r=r;
+        this.color=color;
+        this.tx=tx;
+        this.ty=ty;
+        this.dead=false;
+    }
+    Particle.prototype={
+        paint:function(){
+            ctx.beginPath();
+            ctx.fillStyle='rgba('+this.color.a+','+this.color.b+','+this.color.c+',1)';
+            ctx.fillRect(this.x-this.r,this.y-this.r,2*this.r,2*this.r);
+            ctx.closePath();
+        },
+        update:function(){
+            this.ty+=0.3;
+            var dx=this.tx-this.x,dy=this.ty-this.y;
+            if(Math.abs(dx)<0.1 && Math.abs(dy)<20){
+                this.dead=true;
+            }else{
+                this.x=Math.abs(dx)<0.1?this.tx:this.x+dx*0.1;
+                this.y=Math.abs(dy)<0.1?this.ty:this.y+dy*0.1;
+                this.paint();
+            }
+        }
+    }
+
+    function Firework(x,y,r,color,tx,ty,shape){
+        this.x=x;
+        this.y=y;
+        this.r=r;
+        this.color=color;
+        this.tx=tx;
+        this.ty=ty;
+        this.shape=shape || false;
+        this.dead=false;
+        this.ba=getRand(30,50);
+        this.booms=[];
+    }
+    Firework.prototype={
+        paint:function(){
+            ctx.save();
+            ctx.beginPath();
+            ctx.fillStyle=this.color;
+            ctx.arc(this.x,this.y,this.r,0,2*Math.PI);
+            ctx.fill();
+            ctx.closePath();
+            ctx.restore();
+        },
+        smoke:function(){
+            ctx.save();
+            ctx.beginPath();
+            ctx.fillStyle='rgba(255,228,150,0.3)';
+            ctx.arc(this.x,this.y,this.r+Math.random()*3,0,2*Math.PI);
+            ctx.fill();
+            ctx.closePath();
+            ctx.restore();
+        },
+        update:function(){
+            var dx=this.tx-this.x,dy=this.ty-this.y;
+            if(Math.abs(dx)<this.ba && Math.abs(dy)<this.ba){
+                this.dead=true;
+                if(this.shape){
+                    this.shapeBoom();
+                }else{
+                    this.boom();
+                }
+                for(var i=0;i<audio.length;i++){
+                    if(audio[i].src.indexOf('boom')>=0 && (audio[i].paused || audio[i].ended)){
+                        audio[i].play();
+                        break;
+                    }
+                }
+            }else{
+                this.x+=dx*0.03;
+                this.y+=dy*0.03;
+                this.paint();
+            }
+        },
+        boom:function(){
+            var count=getRand(100,300),r,color,tx,ty,angle,distance;
+            for(var i=0;i<count;i++){
+                r=getRand(1,3);
+                angle=getRand(-Math.PI,Math.PI);
+                color={
+                    a:parseInt(getRand(0,255)),
+                    b:parseInt(getRand(0,255)),
+                    c:parseInt(getRand(0,255))
+                },
+                distance=getRand(0,count);
+                tx=Math.cos(angle)*distance+this.x;
+                ty=Math.sin(angle)*distance+this.y;
+                this.booms.push(new Particle(this.x,this.y,r,color,tx,ty));
+            }
+        },
+        shapeBoom:function(){
+            var that=this,step=4,dx=cw/2-this.tx,dy=ch/2-this.ty;
+            getData(this.shape,step,function(dots){
+                dots.forEach(function(){
+                    that.booms.push(new Particle(that.x,that.y,1,this.color,this.x-dx,this.y-dy));
+                });
+            });
+        }
+    }
+    function getData(dom,step,callback){
+        var text=dom.innerHTML,imgData=[],dots=[],i;
+        octx.clearRect(0,0,cw,ch);
+        octx.save();
+        octx.font='120px 微?雅黑 bold';
+        octx.textAlign='center';
+        octx.textBaseline='middle';
+        octx.fillStyle='rgba('+parseInt(getRand(168,255))+','+parseInt(getRand(168,255))+','+parseInt(getRand(168,255))+',1)';
+        octx.fillText(text,cw/2,ch/2);
+        octx.restore();
+
+        imgData=octx.getImageData(0,0,cw,ch);
+        for(var x=0;x<imgData.width;x+=step){
+            for(var y=0;y<imgData.height;y+=step){
+                i=(y*imgData.width+x)*4;
+                if(imgData.data[i+3]>167){
+                    dots.push({x:x,y:y,color:{
+                        a:imgData.data[i],
+                        b:imgData.data[i+1],
+                        c:imgData.data[i+2]
+                    }});
+                }
+            }
+        }
+        callback(dots);
+    }
+
+    function createMoon(){
+        var sx=cw-200,sy=100,r=40,add=2;
+        //complete属性返回浏览器是否已完成对图像的加载。
+        if(moon.complete){
+            ctx.drawImage(moon,sx,sy,2*r,2*r);
+        }else{
+        	//重新加载
+            moon.onload=function(){
+                ctx.drawImage(moon,sx,sy,2*r,2*r);
+            }
+        }
+        
+		//绘制月亮
+        ctx.save();
+        ctx.beginPath();
+        ctx.fillStyle='rgba(240,219,120,0.05)';
+        //循环5次产生过渡效果
+        for(var i=0;i<5;i++){
+            ctx.arc(sx+r,sy+r,r+add,0,2*Math.PI);
+            ctx.fill();
+            add+=2;
+        }
+        ctx.closePath();
+        ctx.restore();
+    }
+    function createStars(){
+        for(var i=0;i<1000;i++){//向stars数组添加1000颗星星
+        	//push() 方法可向数组的末尾添加一个或多个元素，并返回新的长度。
+            stars.push(new Star(getRand(0,cw),getRand(0,ch-200),Math.random(),'#fff'));
+        }
+    }
+    function Star(x,y,r,color){//定义数组对象初始化方法
+        this.x=x;
+        this.y=y;
+        this.r=r;
+        this.color=color;
+    }
+	Star.prototype={//使用prototype 属性为Star对象添加paint方法
+        paint:function(){//在canvas画布上paint方法绘制星星
+            ctx.save();
+            ctx.beginPath();
+            ctx.fillStyle=this.color;
+            ctx.arc(this.x,this.y,this.r,0,2*Math.PI);
+            ctx.fill();
+            ctx.closePath();
+            ctx.restore();
+        }
+    }
+
+    function getRand(min,max){//在max,min之间随机生成数字
+        return Math.random()*(max-min)+min;
+    }
+    Array.prototype.forEach=function(callback){
+        for(var i=0;i<this.length;i++){
+            if(this[i]!=null){
+                callback.call(this[i],i);
+            }
+        }
+    }
+ </script>
+</html>

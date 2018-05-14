@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Canvas tutorial</title>
+    <script type="text/javascript">
+    	function getRand(min,max){//在max,min之间随机生成数字
+        return Math.random()*(max-min)+min;
+    }
+    Array.prototype.forEach=function(callback){
+        for(var i=0;i<this.length;i++){
+            if(this[i]!=null){
+                callback.call(this[i],i);
+            }
+        }
+    }
+      function draw(){
+        var canvas = document.getElementById('canvas');
+        if (canvas.getContext){
+          var octx = canvas.getContext('2d');
+          octx.clearRect(0,0,450,300);
+	        octx.save();
+	        octx.font='120px 微?雅黑 bold';
+	        octx.textAlign='center';
+	        octx.textBaseline='middle';
+	        octx.fillStyle='rgba('+parseInt(getRand(168,255))+','+parseInt(getRand(168,255))+','+parseInt(getRand(168,255))+',1)';
+	        octx.fillText(text,100,100);
+	        octx.restore();
+        }
+        ctx.closePath();
+        ctx.restore();
+      }
+    </script>
+    <style type="text/css">
+      canvas { border: 1px solid black; }
+    </style>
+  </head>
+  <body onload="draw()">
+    <canvas id="canvas" width="450" height="450"></canvas>
+  </body>
+</html>
