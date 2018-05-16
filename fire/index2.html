@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
  <head>
   <meta charset="UTF-8">
@@ -20,8 +20,8 @@
         <div class="shape">HAPPY</div>
         <div class="shape">HAPPY</div>
     </div>
-  <!-- 声音文件
-  	<audio src="boom.mp3" preload="auto"></audio>
+  <!-- 声音文件-->
+  <audio src="boom.mp3" preload="auto"></audio>
     <audio src="boom.mp3" preload="auto"></audio>
     <audio src="boom.mp3" preload="auto"></audio>
     <audio src="boom.mp3" preload="auto"></audio>
@@ -29,7 +29,7 @@
     <audio src="boom.mp3" preload="auto"></audio>
     <audio src="shotfire.mp3" preload="auto"></audio>
     <audio src="shotfire.mp3" preload="auto"></audio>
-    <audio src="shotfire.mp3" preload="auto"></audio>-->
+    <audio src="shotfire.mp3" preload="auto"></audio>
  </body>
  <script>
  	//requestAnimationFrame动画控制，浏览器兼容补丁  
@@ -71,7 +71,7 @@
     function animate(){
         ctx.save();
          //globalCompositeOperation 属性设置或返回如何将一个源（新的）图像绘制到目标（已有）的图像上。
-        ctx.globalCompositeOperation='destination-out';
+       // ctx.globalCompositeOperation='destination-out';
         ctx.globalAlpha=0.1;//globalAlpha可以指定图形的透明度。
         ctx.fillRect(0,0,cw,ch);
         ctx.restore();
@@ -262,14 +262,14 @@
     function createMoon(){
         var sx=cw-200,sy=100,r=40,add=2;
         //complete属性返回浏览器是否已完成对图像的加载。
-        if(moon.complete){
+       /* if(moon.complete){
             ctx.drawImage(moon,sx,sy,2*r,2*r);
         }else{
         	//重新加载
             moon.onload=function(){
                 ctx.drawImage(moon,sx,sy,2*r,2*r);
             }
-        }
+        }*/
         
 		//绘制月亮
         ctx.save();
